@@ -1,0 +1,7 @@
+#ifndef DHC_temp_setup_HPP
+#define DHC_temp_setup_HPP
+#include "Geometry.hpp"
+void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_t& nlayers, local_int_t& undf_w3, local_int_t& x_vec_max_branch_length,
+                   double** map_w3, double** yvec, double** xvec, double** op1, double** op2, double** op3, double** op4, double** op5, double** op6,
+                   double** op7, double** op8, double** op9, double** ans);
+#endif // DHC_temp_setup_HPP
