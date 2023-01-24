@@ -16,6 +16,9 @@ void read_part_vector_from_string(string line, double** local_array, int &array_
         words.push_back(line.substr(0, pos));
            line.erase(0, pos + space_delimiter.length());
         }
+//    std::cout << "last bit " << line << std::endl; exit(9);
+    // add the last bit additionally
+    words.push_back(line);
     for (const auto &str : words) {
        if(!str.empty()){
 //              temp_stencil[array_counter] = stod(str);
@@ -24,6 +27,27 @@ void read_part_vector_from_string(string line, double** local_array, int &array_
        }
     }
 }
+
+void apply_helmholtz_operator_code(local_int_t&nlayers, double** map_w3, double** yvec, double** xvec,
+                                   double** op1, double** op2, double** op3, double** op4, double** op5, double** op6,
+                                   double** op7, double** op8, double** op9, double** ans, local_int_t& undf_w3)
+{
+  std::cout << "Inside the subroutine " << std::endl;
+//  int temp_int = 0;
+//  for (int i = 0; i < undf_w3; i++)
+//  {
+//      std::cout << (*y_vec)[i] << std::endl;
+//  }
+  //std::cout << "ttemp int " << temp_int << std::endl;
+  std::cout << "map " << (*map_w3)[0] << " " << (*map_w3)[1] << " " << (*map_w3)[3456 - 1] << std::endl;
+  std::cout << "map " << (*map_w3)[4] << " " << (*map_w3)[5] << " " << (*map_w3)[6] << std::endl;
+  std::cout << "yvec " << (*yvec)[0] << " " << (*yvec)[1] << " " << (*yvec)[undf_w3 - 1] << std::endl;
+  std::cout << "xvec " << (*xvec)[0] << " " << (*xvec)[1] << " " << (*xvec)[undf_w3 - 1] << std::endl;
+
+}
+
+
+
 
 void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_t& nlayers, local_int_t& undf_w3, local_int_t& x_vec_max_branch_length,
                    double** map_w3, double** yvec, double** xvec, double** op1, double** op2, double** op3, double** op4, double** op5, double** op6,
