@@ -30,7 +30,7 @@ void read_part_vector_from_string(string line, double** local_array, int &array_
 
 void apply_helmholtz_operator_code(local_int_t&nlayers, double** map_w3, double** yvec, double** xvec,
                                    double** op1, double** op2, double** op3, double** op4, double** op5, double** op6,
-                                   double** op7, double** op8, double** op9, double** ans, local_int_t& undf_w3)
+                                   double** op7, double** op8, double** op9, double** ans, local_int_t& undf_w3, int** stencil_size, int**** dofmap)
 {
   std::cout << "Inside the subroutine " << std::endl;
 //  int temp_int = 0;
@@ -39,10 +39,56 @@ void apply_helmholtz_operator_code(local_int_t&nlayers, double** map_w3, double*
 //      std::cout << (*y_vec)[i] << std::endl;
 //  }
   //std::cout << "ttemp int " << temp_int << std::endl;
+  //checking numbers vs spreadsheet
   std::cout << "map " << (*map_w3)[0] << " " << (*map_w3)[1] << " " << (*map_w3)[3456 - 1] << std::endl;
   std::cout << "map " << (*map_w3)[4] << " " << (*map_w3)[5] << " " << (*map_w3)[6] << std::endl;
   std::cout << "yvec " << (*yvec)[0] << " " << (*yvec)[1] << " " << (*yvec)[undf_w3 - 1] << std::endl;
   std::cout << "xvec " << (*xvec)[0] << " " << (*xvec)[1] << " " << (*xvec)[undf_w3 - 1] << std::endl;
+  std::cout << "op1  " << (*op1)[0] << " " << (*op1)[undf_w3 - 1] << std::endl;
+  std::cout << "op2  " << (*op2)[0] << " " << (*op2)[undf_w3 - 1] << std::endl;
+  std::cout << "op3  " << (*op3)[0] << " " << (*op3)[undf_w3 - 1] << std::endl;
+  std::cout << "op4  " << (*op4)[0] << " " << (*op4)[undf_w3 - 1] << std::endl;
+  std::cout << "op5  " << (*op5)[0] << " " << (*op5)[undf_w3 - 1] << std::endl;
+  std::cout << "op6  " << (*op6)[0] << " " << (*op6)[undf_w3 - 1] << std::endl;
+  std::cout << "op7  " << (*op7)[0] << " " << (*op7)[undf_w3 - 1] << std::endl;
+  std::cout << "op8  " << (*op8)[0] << " " << (*op8)[undf_w3 - 1] << std::endl;
+  std::cout << "op9  " << (*op9)[0] << " " << (*op9)[undf_w3 - 1] << std::endl;
+  std::cout << "ans  " << (*ans)[0] << " " << (*ans)[undf_w3 - 1] << std::endl;
+  std::cout <<"FIX stencil size if needed" << std::endl;
+  std::cout << "dofmap " << (*dofmap)[0][0][0] << std::endl;
+//  std::cout << "stsi " << (*stencil_size)[0] <<" " << (*stencil_size)[4*3456 - 1] << std::endl;
+//  for (int k = 0; k < nlayers; k++)
+//  {
+//      (*yvec)[k] = (*op1)[k] * (*xvec)[smap(1,1,1) + k] //map(1)??
+//  }
+/*
+    ! Use a more efficient method for the global
+    do k = 0,nlayers-1
+      y(map(1)+k) = Helm_C(map(1)+k)*x(smap(1,1,1)+k) &
+                  + Helm_W(map(1)+k)*x(smap(1,2,1)+k) &
+                  + Helm_S(map(1)+k)*x(smap(1,2,2)+k) &
+                  + Helm_E(map(1)+k)*x(smap(1,2,3)+k) &
+                  + Helm_N(map(1)+k)*x(smap(1,2,4)+k)
+    end do
+
+  end if
+
+  ! Coefficients on layers above
+  do k = 0,nlayers-3
+    y(map(1)+k) = y(map(1)+k) + Helm_U(map(1)+k) *x(map(1)+k+1) &
+                              + Helm_UU(map(1)+k)*x(map(1)+k+2)
+  end do
+  k = nlayers - 2
+  y(map(1)+k) = y(map(1)+k) + Helm_U(map(1)+k)*x(map(1)+k+1)
+
+  ! Coefficients on layers below
+  k = 1
+  y(map(1)+k) = y(map(1)+k) + Helm_D(map(1)+k)*x(map(1)+k-1)
+  do k = 2,nlayers-1
+    y(map(1)+k) = y(map(1)+k) + Helm_D(map(1)+k) *x(map(1)+k-1) &
+                              + Helm_DD(map(1)+k)*x(map(1)+k-2)
+  end do
+*/
 
 }
 
@@ -51,7 +97,7 @@ void apply_helmholtz_operator_code(local_int_t&nlayers, double** map_w3, double*
 
 void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_t& nlayers, local_int_t& undf_w3, local_int_t& x_vec_max_branch_length,
                    double** map_w3, double** yvec, double** xvec, double** op1, double** op2, double** op3, double** op4, double** op5, double** op6,
-                   double** op7, double** op8, double** op9, double** ans)
+                   double** op7, double** op8, double** op9, double** ans, int** stencil_size, int**** dofmap)
 {
   // read dinodump.dat
   // remember from fortran
@@ -76,9 +122,9 @@ void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_
   int scalars_stop  = 4;
   int stencil_start;
   int stencil_stop;
-  int dofmap_start;
+  int dofmap_start;  //x_vec_stencil_dofmap , smap
   int dofmap_stop;
-  int map_start;
+  int map_start; // map_w3
   int map_stop;
   int yvec_start;
   int yvec_stop;
@@ -288,6 +334,27 @@ void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_
 //    {
 //       std::cout << "temp ve " << temp_stencil[i] << "\n";
  //   }
+    // rearrange stencil sizes - strictly 4 * loop0stop but all numbers are 2 and not used so be lazy atm
+    *stencil_size = (int*) malloc(4*loop0_stop * sizeof(int));
+    for (int i=0; i < 4 *loop0_stop; i++)
+    {
+        (*stencil_size)[i] = (int) temp_stencil[i];
+    }
+    // rearrange dofmap (smap) smap[nloop0stop, 4,maxlen, 1]
+//                temp_dofmap   = (double*) malloc(4*loop0_stop*x_vec_max_branch_length * sizeof(double));
+    *dofmap = (int***) malloc(loop0_stop * sizeof(int **));
+    for (int i=0;i<loop0_stop;i++)
+    {
+        (*dofmap)[i] = (int**) malloc(4 * sizeof(int*));
+        for (int j=0; j < 4; j++)
+        {
+            (*dofmap)[i][j] = (int*) malloc (x_vec_max_branch_length * sizeof(int));
+            for (int k=0; k < x_vec_max_branch_length; k++)
+            {
+               (*dofmap)[i][j][k] = 1;
+            }
+        }
+    }
     free(temp_stencil);
     free(temp_dofmap);
     }//if counter large

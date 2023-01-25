@@ -186,9 +186,10 @@ int main(int argc, char * argv[]) {
   local_int_t undf_w3     = 0;
   local_int_t x_vec_max_branch_length = 0;
   double* map_w3;double* yvec;double* xvec;double* op1;double* op2;double* op3;double* op4;double* op5;double* op6;double* op7;double* op8;double* op9;double* ans;
+  int* stencil_size; int*** dofmap;
 
   read_dinodump(loop0_start, loop0_stop, nlayers, undf_w3, x_vec_max_branch_length, &map_w3,
-                &yvec, &xvec, &op1, &op2, &op3, &op4, &op5, &op6, &op7, &op8, &op9, &ans);
+                &yvec, &xvec, &op1, &op2, &op3, &op4, &op5, &op6, &op7, &op8, &op9, &ans, &stencil_size, &dofmap);
   local_int_t ndf_w3      = 1; // always 1
   std::cout << "After reading loop0 is " << loop0_start <<std::endl;
   std::cout << "After reading loop0 is " << loop0_stop <<std::endl;
@@ -196,19 +197,12 @@ int main(int argc, char * argv[]) {
   std::cout << "After reading loop0 is " << undf_w3 <<std::endl;
   std::cout << "After reading loop0 is " << x_vec_max_branch_length <<std::endl;
   int cell = 1;
-/*  apply_helmholtz_operator_code(nlayers, &y_vec, &x_vec, x_vec_stencil_size(:,cell), &
-          &x_vec_max_branch_length, x_vec_stencil_dofmap(:,:,:,cell), &op1, &op2,
-          &op3, &op4, &op5, &op6, &op7, &op8,
-          &helmholtz_operator9, .false., ndf_w3, undf_w3, &map_w3(:,cell))*/
 
-//  apply_helmholtz_operator_code(nlayers, &yvec, undf_w3);
   apply_helmholtz_operator_code(nlayers, &map_w3, &yvec, &xvec, &op1, &op2, &op3, &op4, &op5, &op6,
-                                &op7, &op8, &op9, &ans, undf_w3);
-//  std::cout << "Map w3 " << map_w3[0] << " " << map_w3[3] << " " << map_w3[loop0_stop-1] << " " << sizeof(map_w3)/sizeof(map_w3[0])  << std::endl;
-//  std::cout << "ans " << ans[0] << " " << ans[undf_w3-1] << " " << sizeof(ans)/sizeof(ans[0])<< std::endl;
-//  std::cout << "Map w3 " << map_w3[0] << " " << map_w3[loop0_stop-1] << " " << end(map_w3) - begin(map_w3)  << std::endl;
-//  std::cout << "ans " << ans[0] << " " << ans[undf_w3-1] << " " << ans.size()<< std::endl;
+                                &op7, &op8, &op9, &ans, undf_w3, &stencil_size, &dofmap);
+
   free(map_w3); free(yvec); free(xvec); free(op1); free(op2); free(op3); free(op4); free(op5); free(op6); free(op7); free(op8); free(op9); free(ans);
+  free(stencil_size); free(dofmap);
   // Record execution time of reference SpMV and MG kernels for reporting times
   // First load vector with random values
   FillRandomVector(x_overlap);
