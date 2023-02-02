@@ -185,7 +185,7 @@ int main(int argc, char * argv[]) {
   local_int_t nlayers     = 0;
   local_int_t undf_w3     = 0;
   local_int_t x_vec_max_branch_length = 0;
-  double* map_w3;double* yvec;double* xvec;double* op1;double* op2;double* op3;double* op4;double* op5;double* op6;double* op7;double* op8;double* op9;double* ans;
+  int* map_w3;double* yvec;double* xvec;double* op1;double* op2;double* op3;double* op4;double* op5;double* op6;double* op7;double* op8;double* op9;double* ans;
   int* stencil_size; int*** dofmap;
 
   read_dinodump(loop0_start, loop0_stop, nlayers, undf_w3, x_vec_max_branch_length, &map_w3,
@@ -196,13 +196,21 @@ int main(int argc, char * argv[]) {
   std::cout << "After reading loop0 is " << nlayers <<std::endl;
   std::cout << "After reading loop0 is " << undf_w3 <<std::endl;
   std::cout << "After reading loop0 is " << x_vec_max_branch_length <<std::endl;
-  int cell = 1;
 
-  apply_helmholtz_operator_code(nlayers, &map_w3, &yvec, &xvec, &op1, &op2, &op3, &op4, &op5, &op6,
-                                &op7, &op8, &op9, &ans, undf_w3, &stencil_size, &dofmap);
+  int n_dissimilar = check_similarity_arrays(&ans, &yvec, undf_w3);
+  std::cout << "Number dissimilar before " << n_dissimilar << std::endl; //this should be zero??
 
+  for (int cell = 0; cell< loop0_stop; cell++)
+  {
+    apply_helmholtz_operator_code(nlayers, cell, &map_w3, &yvec, &xvec, &op1, &op2, &op3, &op4, &op5, &op6,
+                                  &op7, &op8, &op9, &ans, undf_w3, &stencil_size, &dofmap);
+  }
+
+  n_dissimilar = check_similarity_arrays(&ans, &yvec, undf_w3);
+  std::cout << "Number dissimilar after  " << n_dissimilar << std::endl;
   free(map_w3); free(yvec); free(xvec); free(op1); free(op2); free(op3); free(op4); free(op5); free(op6); free(op7); free(op8); free(op9); free(ans);
   free(stencil_size); free(dofmap);
+  std::cout << "Freed memory" << std::endl;
   // Record execution time of reference SpMV and MG kernels for reporting times
   // First load vector with random values
   FillRandomVector(x_overlap);

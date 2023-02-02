@@ -9,6 +9,18 @@
 #include <algorithm>
 using namespace std;
 
+int check_similarity_arrays(double** v1, double** v2, const int len_arrays)//, int &n_different){}
+{
+    // how many elements of v1 and v2 differ by more than hard coded diff
+    double diff = 0.0001;
+    int n_different = 0;
+    for (int i = 0; i < len_arrays; i++)
+    {
+        if (abs((*v1)[i] - (*v2)[i]) > diff) {n_different++;}
+    }
+    return n_different;
+}
+
 void read_part_vector_from_string(string line, double** local_array, int &array_counter, string space_delimiter){
     vector<string> words{};
     size_t pos = 0;
@@ -28,19 +40,39 @@ void read_part_vector_from_string(string line, double** local_array, int &array_
     }
 }
 
-void apply_helmholtz_operator_code(local_int_t&nlayers, double** map_w3, double** yvec, double** xvec,
+void read_part_vector_from_string(string line, int** local_array, int &array_counter, string space_delimiter){
+    vector<string> words{};
+    size_t pos = 0;
+    while ((pos = line.find(space_delimiter)) != string::npos) {
+        words.push_back(line.substr(0, pos));
+           line.erase(0, pos + space_delimiter.length());
+        }
+//    std::cout << "last bit " << line << std::endl; exit(9);
+    // add the last bit additionally
+    words.push_back(line);
+    for (const auto &str : words) {
+       if(!str.empty()){
+//              temp_stencil[array_counter] = stod(str);
+              (*local_array)[array_counter] = stoi(str);
+          array_counter++;
+       }
+    }
+}
+
+
+
+void apply_helmholtz_operator_code(local_int_t &nlayers, local_int_t &cell, int** map_w3, double** yvec, double** xvec,
                                    double** op1, double** op2, double** op3, double** op4, double** op5, double** op6,
                                    double** op7, double** op8, double** op9, double** ans, local_int_t& undf_w3, int** stencil_size, int**** dofmap)
 {
-  std::cout << "Inside the subroutine " << std::endl;
-//  int temp_int = 0;
-//  for (int i = 0; i < undf_w3; i++)
-//  {
-//      std::cout << (*y_vec)[i] << std::endl;
-//  }
-  //std::cout << "ttemp int " << temp_int << std::endl;
+  /*
+     this plus the loop over the surface grid makes the SPMV equivalent
+     op1 = Helm_C; op2 = Helm_N; op3 = Helm_E; op4 = Helm_S;
+     op5 = Helm_W; op6 = Helm_U; op7 = Helm_UU; op8 = Helm_D; op9 = Helm_DD;
+  */
+
   //checking numbers vs spreadsheet
-  std::cout << "map " << (*map_w3)[0] << " " << (*map_w3)[1] << " " << (*map_w3)[3456 - 1] << std::endl;
+/*  std::cout << "map " << (*map_w3)[0] << " " << (*map_w3)[1] << " " << (*map_w3)[3456 - 1] << std::endl;
   std::cout << "map " << (*map_w3)[4] << " " << (*map_w3)[5] << " " << (*map_w3)[6] << std::endl;
   std::cout << "yvec " << (*yvec)[0] << " " << (*yvec)[1] << " " << (*yvec)[undf_w3 - 1] << std::endl;
   std::cout << "xvec " << (*xvec)[0] << " " << (*xvec)[1] << " " << (*xvec)[undf_w3 - 1] << std::endl;
@@ -55,12 +87,52 @@ void apply_helmholtz_operator_code(local_int_t&nlayers, double** map_w3, double*
   std::cout << "op9  " << (*op9)[0] << " " << (*op9)[undf_w3 - 1] << std::endl;
   std::cout << "ans  " << (*ans)[0] << " " << (*ans)[undf_w3 - 1] << std::endl;
   std::cout <<"FIX stencil size if needed" << std::endl;
-  std::cout << "dofmap " << (*dofmap)[0][0][0] << std::endl;
+  std::cout << "dofmap " << (*dofmap)[0][0][0] << " " << (*dofmap)[3456-1][4-1][2-1] << std::endl;*/
 //  std::cout << "stsi " << (*stencil_size)[0] <<" " << (*stencil_size)[4*3456 - 1] << std::endl;
-//  for (int k = 0; k < nlayers; k++)
-//  {
-//      (*yvec)[k] = (*op1)[k] * (*xvec)[smap(1,1,1) + k] //map(1)??
-//  }
+  // dimensions dofmap [cells][4][branch length
+  // use pointer arithmetic for speed?
+  // map_w3 is just treated as a vector, as dimension size is 1 in other axis
+//  int cell = 0;
+/*  std::cout << (*map_w3)[0]<< " " << (*yvec)[0]<< " " << (*xvec)[0] << std::endl;
+  std::cout << (*op1)[(*map_w3)[0]]<< " " << (*xvec)[(*dofmap)[cell][0][0]]<< " " <<
+               (*op5)[(*map_w3)[0]]<< " " << (*xvec)[(*dofmap)[cell][1][0]]<< " " <<
+               (*op4)[(*map_w3)[0]]<< " " << (*xvec)[(*dofmap)[cell][1][1]]<< " " <<
+               (*op3)[(*map_w3)[0]]<< " " << (*xvec)[(*dofmap)[cell][1][2]]<< " " <<
+               (*op2)[(*map_w3)[0]]<< " " << (*xvec)[(*dofmap)[cell][1][3]]<< std::endl;*/
+  // first match map and dofmap - then change then so that they are one less (in readdinodump below) - c vs fort
+  for (int k = 0; k < nlayers; k++)
+  {
+      std::cout << (*yvec)[(*map_w3)[cell] + k] << " " << (*op1)[(*map_w3)[cell] + k] << " " << (*xvec)[(*dofmap)[cell][0][0] + k]
+                    << " " <<(*map_w3)[cell]<< " " << (*dofmap)[cell][0][0]<< " " <<
+                     (*dofmap)[cell][0][1]<< " " << (*dofmap)[cell][1][1]<< " " << (*dofmap)[cell][2][1]<<
+                     " " << (*dofmap)[cell][3][1]<< std::endl;
+
+      (*yvec)[(*map_w3)[cell] + k] = (*op1)[(*map_w3)[cell] + k] * (*xvec)[(*dofmap)[cell][0][0] + k]
+                  +(*op5)[(*map_w3)[cell] + k]  * (*xvec)[(*dofmap)[cell][0][1] + k]
+                  +(*op4)[(*map_w3)[cell] + k]  * (*xvec)[(*dofmap)[cell][1][1] + k]
+                  +(*op3)[(*map_w3)[cell] + k]  * (*xvec)[(*dofmap)[cell][2][1] + k]
+                  +(*op2)[(*map_w3)[cell] + k]  * (*xvec)[(*dofmap)[cell][3][1] + k];
+  }
+
+  for (int k = 0; k <=nlayers-3; k++)
+  {
+    (*yvec)[(*map_w3)[cell] + k] = (*yvec)[(*map_w3)[cell] + k] + (*op6)[(*map_w3)[cell] + k] * (*xvec)[(*map_w3)[cell] + k+1]
+                            + (*op7)[(*map_w3)[cell] + k] * (*xvec)[(*map_w3)[cell] + k+2];
+
+  }
+
+  int k = nlayers - 2;
+  (*yvec)[(*map_w3)[cell] + k] = (*yvec)[(*map_w3)[cell] + k] + (*op6)[(*map_w3)[cell] + k] * (*xvec)[(*map_w3)[cell] + k+1];
+
+  //! Coefficients on layers below
+  k = 1;
+  (*yvec)[(*map_w3)[cell] + k] = (*yvec)[(*map_w3)[cell] + k] + (*op8)[(*map_w3)[cell] + k] * (*xvec)[(*map_w3)[cell] + k-1];
+  for( k = 2; k <= nlayers-1;k++)
+  {
+    (*yvec)[(*map_w3)[cell] + k] = (*yvec)[(*map_w3)[cell] + k] + (*op8)[(*map_w3)[0] + k] * (*xvec)[(*map_w3)[0] + k-1]
+                              + (*op9)[(*map_w3)[0] + k] * (*xvec)[(*map_w3)[0] + k-2];
+  }
+
 /*
     ! Use a more efficient method for the global
     do k = 0,nlayers-1
@@ -96,7 +168,7 @@ void apply_helmholtz_operator_code(local_int_t&nlayers, double** map_w3, double*
 
 
 void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_t& nlayers, local_int_t& undf_w3, local_int_t& x_vec_max_branch_length,
-                   double** map_w3, double** yvec, double** xvec, double** op1, double** op2, double** op3, double** op4, double** op5, double** op6,
+                   int** map_w3, double** yvec, double** xvec, double** op1, double** op2, double** op3, double** op4, double** op5, double** op6,
                    double** op7, double** op8, double** op9, double** ans, int** stencil_size, int**** dofmap)
 {
   // read dinodump.dat
@@ -197,7 +269,7 @@ void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_
                 // allocate memory
                 temp_stencil  = (double*) malloc(4*loop0_stop * sizeof(double));
                 temp_dofmap   = (double*) malloc(4*loop0_stop*x_vec_max_branch_length * sizeof(double));
-                *map_w3       = (double*) malloc(loop0_stop * sizeof(double));
+                *map_w3       = (int*) malloc(loop0_stop * sizeof(int));
                 *yvec         = (double*) malloc(undf_w3 * sizeof(double));
                 *xvec         = (double*) malloc(undf_w3 * sizeof(double));
                 *op1          = (double*) malloc(undf_w3 * sizeof(double));
@@ -220,49 +292,18 @@ void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_
 //     stencil
         if (counter >= stencil_start and counter <= stencil_stop)
         {
-            vector<string> words{};
-            while ((pos = line.find(space_delimiter)) != string::npos) {
-              words.push_back(line.substr(0, pos));
-              line.erase(0, pos + space_delimiter.length());
-            }
-            for (const auto &str : words) {
-              if(!str.empty()){
-                 temp_stencil[array_counter] = stod(str);
-                 array_counter++;
-                 }
-              }
+          read_part_vector_from_string(line, &temp_stencil, array_counter, space_delimiter);
         }
 //     dofmap       (ndf_w3,x_vec_max_branch_length, 4, loop0)
         if (counter == dofmap_start) array_counter = 0;
         if (counter >= dofmap_start and counter <= dofmap_stop)
         {
-            vector<string> words{};
-            while ((pos = line.find(space_delimiter)) != string::npos) {
-              words.push_back(line.substr(0, pos));
-              line.erase(0, pos + space_delimiter.length());
-            }
-            for (const auto &str : words) {
-              if(!str.empty()){
-                 temp_dofmap[array_counter] = stod(str);
-                 array_counter++;
-                 }
-              }
+          read_part_vector_from_string(line, &temp_dofmap, array_counter, space_delimiter);
         }//dofmap */
         if (counter == map_start) array_counter = 0;
         if (counter >= map_start and counter <= map_stop)
         {
-            /*vector<string> words{};
-            while ((pos = line.find(space_delimiter)) != string::npos) {
-              words.push_back(line.substr(0, pos));
-              line.erase(0, pos + space_delimiter.length());
-            }
-            for (const auto &str : words) {
-              if(!str.empty()){
-                 (*map_w3)[array_counter] = stod(str);
-                 array_counter++;
-                 }
-              }*/
-        read_part_vector_from_string(line, map_w3, array_counter, space_delimiter);
+          read_part_vector_from_string(line, map_w3, array_counter, space_delimiter);
         }//map_w3
         //yvec
         if (counter == yvec_start) array_counter = 0;
@@ -330,19 +371,25 @@ void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_
       counter++;
     }//while
     if (counter >= 4){
-//    for (int i = 0;i< 4*loop0_stop; i++)
-//    {
-//       std::cout << "temp ve " << temp_stencil[i] << "\n";
- //   }
+
     // rearrange stencil sizes - strictly 4 * loop0stop but all numbers are 2 and not used so be lazy atm
+/* stencil size is only used for limited area
     *stencil_size = (int*) malloc(4*loop0_stop * sizeof(int));
     for (int i=0; i < 4 *loop0_stop; i++)
     {
         (*stencil_size)[i] = (int) temp_stencil[i];
     }
+*/
+    // lower all values map by one (c vs fort)
+    for (int i=0;i<loop0_stop;i++)
+    {
+        (*map_w3)[i]--;
+    }
     // rearrange dofmap (smap) smap[nloop0stop, 4,maxlen, 1]
+    // fortran   allocate(x_vec_stencil_dofmap(ndf_w3, x_vec_max_branch_length,4,undf_w3))
 //                temp_dofmap   = (double*) malloc(4*loop0_stop*x_vec_max_branch_length * sizeof(double));
     *dofmap = (int***) malloc(loop0_stop * sizeof(int **));
+    int temp_counter = 0;
     for (int i=0;i<loop0_stop;i++)
     {
         (*dofmap)[i] = (int**) malloc(4 * sizeof(int*));
@@ -351,9 +398,14 @@ void read_dinodump(local_int_t& loop0_start, local_int_t& loop0_stop, local_int_
             (*dofmap)[i][j] = (int*) malloc (x_vec_max_branch_length * sizeof(int));
             for (int k=0; k < x_vec_max_branch_length; k++)
             {
-               (*dofmap)[i][j][k] = 1;
+//               (*dofmap)[i][j][k] = temp_dofmap[k*4*loop0_stop + j * 4 + i];
+               (*dofmap)[i][j][k] = temp_dofmap[temp_counter] - 1;
+//               std::cout << "rearr " << temp_counter << " " << i << " " << j<< " "<< k << " " << temp_dofmap[temp_counter] <<std::endl;
+//               << (*dofmap)[i][j][k] << " " << temp_dofmap[temp_counter]<< std::endl;
+               temp_counter++;
             }
         }
+  //      exit(789);
     }
     free(temp_stencil);
     free(temp_dofmap);
