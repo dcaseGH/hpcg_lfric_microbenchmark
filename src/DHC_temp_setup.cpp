@@ -102,11 +102,11 @@ void apply_helmholtz_operator_code(local_int_t &nlayers, local_int_t &cell, int*
   // first match map and dofmap - then change then so that they are one less (in readdinodump below) - c vs fort
   for (int k = 0; k < nlayers; k++)
   {
-      std::cout << (*yvec)[(*map_w3)[cell] + k] << " " << (*op1)[(*map_w3)[cell] + k] << " " << (*xvec)[(*dofmap)[cell][0][0] + k]
+/*      std::cout << (*yvec)[(*map_w3)[cell] + k] << " " << (*op1)[(*map_w3)[cell] + k] << " " << (*xvec)[(*dofmap)[cell][0][0] + k]
                     << " " <<(*map_w3)[cell]<< " " << (*dofmap)[cell][0][0]<< " " <<
                      (*dofmap)[cell][0][1]<< " " << (*dofmap)[cell][1][1]<< " " << (*dofmap)[cell][2][1]<<
                      " " << (*dofmap)[cell][3][1]<< std::endl;
-
+*/
       (*yvec)[(*map_w3)[cell] + k] = (*op1)[(*map_w3)[cell] + k] * (*xvec)[(*dofmap)[cell][0][0] + k]
                   +(*op5)[(*map_w3)[cell] + k]  * (*xvec)[(*dofmap)[cell][0][1] + k]
                   +(*op4)[(*map_w3)[cell] + k]  * (*xvec)[(*dofmap)[cell][1][1] + k]

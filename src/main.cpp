@@ -180,6 +180,7 @@ int main(int argc, char * argv[]) {
   InitializeVector(b_computed, nrow); // Computed RHS vector
 
   // Above is how things were originally, now cheat and read new data from dinodump.dat
+  // Perhaps assert MPI ranks only 1?
   local_int_t loop0_start = 0;
   local_int_t loop0_stop  = 0;
   local_int_t nlayers     = 0;
@@ -190,6 +191,22 @@ int main(int argc, char * argv[]) {
 
   read_dinodump(loop0_start, loop0_stop, nlayers, undf_w3, x_vec_max_branch_length, &map_w3,
                 &yvec, &xvec, &op1, &op2, &op3, &op4, &op5, &op6, &op7, &op8, &op9, &ans, &stencil_size, &dofmap);
+
+  std::cout << "Replacing vector b " << b.localLength << "with my x which has " << undf_w3 << std::endl;
+  b.localLength = undf_w3;
+  b.values = xvec;
+  xexact.localLength = undf_w3;
+  xexact.values = yvec;
+  // something for ans??
+  // z direction never partitioned, so global and local always nlayers
+  A.geom->gnz = nlayers;
+  A.geom->nz  = nlayers;
+  A.geom->nxy = loop0_stop - loop0_start + 1; // number total in x and y
+  A.localNumberOfColumns = A.geom->nxy * A.geom->nz;
+  A.localNumberOfRows = A.localNumberOfColumns; //MPI ranks == 1
+  A.geom->map_w3 = &map_w3;
+  A.geom->dofmap = &dofmap;
+
   local_int_t ndf_w3      = 1; // always 1
   std::cout << "After reading loop0 is " << loop0_start <<std::endl;
   std::cout << "After reading loop0 is " << loop0_stop <<std::endl;
@@ -206,17 +223,31 @@ int main(int argc, char * argv[]) {
                                   &op7, &op8, &op9, &ans, undf_w3, &stencil_size, &dofmap);
   }
 
+// replace above with SPMV
   n_dissimilar = check_similarity_arrays(&ans, &yvec, undf_w3);
   std::cout << "Number dissimilar after  " << n_dissimilar << std::endl;
+
+  std::cout << "Now doing the same with spmv" << std::endl;
+  A.op1 = op1;
+  A.op2 = op2;
+  A.op3 = op3;
+  A.op4 = op4;
+  A.op5 = op5;
+  A.op6 = op6;
+  A.op7 = op7;
+  A.op8 = op8;
+  A.op9 = op9;
+  ierr = ComputeSPMV_ref(A, b, xexact ); // b has xvec values , xexact has y values
+  //check xexact
+  n_dissimilar = check_similarity_arrays(&ans, &xexact.values, undf_w3);
+  std::cout << "Number dissimilar after  " << n_dissimilar << std::endl;
+
   free(map_w3); free(yvec); free(xvec); free(op1); free(op2); free(op3); free(op4); free(op5); free(op6); free(op7); free(op8); free(op9); free(ans);
   free(stencil_size); free(dofmap);
   std::cout << "Freed memory" << std::endl;
   // Record execution time of reference SpMV and MG kernels for reporting times
   // First load vector with random values
-  FillRandomVector(x_overlap);
-
-  /*dhc put some test stuff here */
-  ierr = ComputeSPMV_ref(A, x_overlap, b_computed); // b_computed = A*x_overlap
+//  FillRandomVector(x_overlap);
   return 0;
 
   int numberOfCalls = 10;
