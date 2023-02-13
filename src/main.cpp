@@ -162,7 +162,7 @@ int main(int argc, char * argv[]) {
 
 
   CGData data;
-  InitializeSparseCGData(A, data);
+  //InitializeSparseCGData(A, data); // move this until have new data about size of A rows and columns
 
 
 
@@ -172,13 +172,14 @@ int main(int argc, char * argv[]) {
 
   // Call Reference SpMV and MG. Compute Optimization time as ratio of times in these routines
 
+/*  move this to be below
   local_int_t nrow = A.localNumberOfRows;
   local_int_t ncol = A.localNumberOfColumns;
 
   Vector x_overlap, b_computed;
   InitializeVector(x_overlap, ncol); // Overlapped copy of x vector
   InitializeVector(b_computed, nrow); // Computed RHS vector
-
+*/
   // Above is how things were originally, now cheat and read new data from dinodump.dat
   // Perhaps assert MPI ranks only 1?
   local_int_t loop0_start = 0;
@@ -195,6 +196,8 @@ int main(int argc, char * argv[]) {
   std::cout << "Replacing vector b " << b.localLength << "with my x which has " << undf_w3 << std::endl;
   b.localLength = undf_w3;
   b.values = xvec;
+  x.localLength = undf_w3;
+  //x.values = xvec;
   xexact.localLength = undf_w3;
   xexact.values = yvec;
   // something for ans??
@@ -203,11 +206,20 @@ int main(int argc, char * argv[]) {
   A.geom->nz  = nlayers;
   A.geom->nxy = loop0_stop - loop0_start + 1; // number total in x and y
   A.localNumberOfColumns = A.geom->nxy * A.geom->nz;
+  assert(A.geom->nxy * A.geom->nz == undf_w3);
   A.localNumberOfRows = A.localNumberOfColumns; //MPI ranks == 1
   A.geom->map_w3 = &map_w3;
   A.geom->dofmap = &dofmap;
 
   local_int_t ndf_w3      = 1; // always 1
+  InitializeSparseCGData(A, data); // moved
+  local_int_t nrow = A.localNumberOfRows;
+  local_int_t ncol = A.localNumberOfColumns;
+
+  Vector x_overlap, b_computed;
+  InitializeVector(x_overlap, ncol); // Overlapped copy of x vector
+  InitializeVector(b_computed, nrow); // Computed RHS vector
+
   std::cout << "After reading loop0 is " << loop0_start <<std::endl;
   std::cout << "After reading loop0 is " << loop0_stop <<std::endl;
   std::cout << "After reading loop0 is " << nlayers <<std::endl;
@@ -242,6 +254,41 @@ int main(int argc, char * argv[]) {
   n_dissimilar = check_similarity_arrays(&ans, &xexact.values, undf_w3);
   std::cout << "Number dissimilar after  " << n_dissimilar << std::endl;
 
+  // Do a CG to see how it goes
+  // Could possibly do SymGS?? But no multigrid for now, so is it needed?
+  ZeroVector(x); // Zero out x
+
+//  ierr = CG( A, data, b, x, optMaxIters, optTolerance, niters, normr, normr0, &times[0], false); // Set preconditioner to false dhc
+  int niters = 0;
+  int totalNiters_ref = 0;
+  double normr = 0.0;
+  double normr0 = 0.0;
+  int refMaxIters = 50;
+  n_dissimilar = check_similarity_arrays(&b.values, &x.values, undf_w3);
+  std::cout << "Number dissimilar before " << n_dissimilar << std::endl;
+  //numberOfCalls = 1; // Only need to run the residual reduction analysis once
+  ZeroVector(x);
+  bool force_more_symmetric = true; // Do this to ensure CG converges -otherwise can get to about 1e-6 and bounces back a bit
+  if (force_more_symmetric){
+    A.op4 = A.op2; //S=N
+    A.op5 = A.op3; // E=W
+    A.op9 = A.op7; // DD=UU
+    A.op8 = A.op6; //D=U
+  }
+  // need to converge to tolerance - if set to zero and run to max iters it can make nans
+  ierr = CG( A, data, b, x, 500, 1.0e-20, niters, normr, normr0, &times[0], false); // Set preconditioner to false dhc
+  if (ierr) std::cout << "Error in call to CG: " << ierr << ".\n" << endl;
+  if (rank==0) std::cout << "Call [ ? ] Scaled Residual [" << normr/normr0 << "] after n=" << niters << endl;
+//  testnorms_data.values[i] = normr/normr0; // Record scaled residual from this run
+  ZeroVector(xexact);
+  ComputeSPMV_ref(A, x, xexact);
+  n_dissimilar = check_similarity_arrays(&b.values, &xexact.values, undf_w3);
+  for (int i = 0;i < b.localLength ; i++)
+  {
+      std::cout << xexact.values[i] << " " << b.values[i] << std::endl;
+  }
+  std::cout << "Number dissimilar after  " << n_dissimilar << std::endl;
+
   free(map_w3); free(yvec); free(xvec); free(op1); free(op2); free(op3); free(op4); free(op5); free(op6); free(op7); free(op8); free(op9); free(ans);
   free(stencil_size); free(dofmap);
   std::cout << "Freed memory" << std::endl;
@@ -273,14 +320,14 @@ int main(int argc, char * argv[]) {
   t1 = mytimer();
 #endif
   int global_failure = 0; // assume all is well: no failures
-
+/* move
   int niters = 0;
   int totalNiters_ref = 0;
   double normr = 0.0;
   double normr0 = 0.0;
   int refMaxIters = 50;
   numberOfCalls = 1; // Only need to run the residual reduction analysis once
-
+*/
   // Compute the residual reduction for the natural ordering and reference kernels
   std::vector< double > ref_times(9,0.0);
   double tolerance = 0.0; // Set tolerance to zero to make all runs do maxIters iterations

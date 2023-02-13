@@ -23,6 +23,7 @@
 #include <cmath>
 
 #include "hpcg.hpp"
+#include <iostream>
 
 #include "CG.hpp"
 #include "mytimer.hpp"
@@ -98,6 +99,7 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
   // Start iterations
   // Convergence check accepts an error of no more than 6 significant digits of tolerance
   for (int k=1; k<=max_iter && normr/normr0 > tolerance * (1.0 + 1.0e-6); k++ ) {
+
     TICK();
     if (doPreconditioning)
       ComputeMG(A, r, z); // Apply preconditioner
@@ -127,8 +129,13 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
       HPCG_fout << "Iteration = "<< k << "   Scaled Residual = "<< normr/normr0 << std::endl;
 #endif
     niters = k;
+//    std::cout << normr << " " << normr/normr0 << std::endl;
   }
 
+//  for (int i = 0;i < b.localLength ; i++)
+ // {
+ //    std::cout << Ap.values[i] << " " << b.values[i] << std::endl; //WRONG test
+ // }
   // Store times
   times[1] += t1; // dot-product time
   times[2] += t2; // WAXPBY time
